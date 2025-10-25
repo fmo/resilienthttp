@@ -5,6 +5,7 @@ import (
     "io"
     "log/slog"
     "time"
+    "context"
 )
 
 var (
@@ -41,7 +42,15 @@ func NewRequest(method, url string, body io.Reader) (*Request, error) {
     if err != nil {
         return nil, err
     }
-    return &Request{ Request: r}, nil
+    return &Request{ Request: r }, nil
+}
+
+func NewRequestWithContext(ctx context.Context, method, url string, body io.Reader) (*Request, error) {
+    r, err := http.NewRequestWithContext(ctx, method, url, body)
+    if err != nil {
+        return nil, err
+    }
+    return &Request { Request: r }, err
 }
 
 func Get(url string) (*http.Response, error) {
