@@ -2,6 +2,7 @@ package resilienthttp
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -13,11 +14,14 @@ var (
 	defaultBackoff  = 1 * time.Second
 )
 
+type CheckRetry func(res *http.Response) bool
+
 // Client wraps the standard library's http.Client.
 // Adds retry capability for more resilient HTTP requests.
 type Client struct {
 	HTTPClient *http.Client
 	RetryMax   int
+	CheckRetry CheckRetry
 	Backoff    BackoffFunc
 }
 
@@ -29,6 +33,9 @@ func NewClient() *Client {
 		RetryMax:   defaultRetryMax,
 		Backoff: func(attempt int) {
 			time.Sleep(defaultBackoff * time.Duration(attempt))
+		},
+		CheckRetry: func(res *http.Response) bool {
+			return res.StatusCode >= 500
 		},
 	}
 }
@@ -65,16 +72,21 @@ func Get(url string) (*http.Response, error) {
 
 func (c *Client) Do(req *Request) (*http.Response, error) {
 	var response *http.Response
-	var doErr error
+	var err error
 
 	for i := 1; ; i++ {
-		response, doErr = c.HTTPClient.Do(req.Request)
-		if doErr != nil {
-			if i >= c.RetryMax {
-				return nil, doErr
+		response, err = c.HTTPClient.Do(req.Request)
+		if err != nil {
+			slog.Error("request failed", "err", err)
+			return nil, err
+		}
+
+		if c.CheckRetry(response) {
+			if i >= c.RetryMax || !c.CheckRetry(response) {
+				return nil, errors.New("cant connect to the service")
 			} else {
 				c.Backoff(i)
-				slog.Error("request failed", "attempt", i, "error", doErr)
+				slog.Error("request failed", "attempt", i)
 				continue
 			}
 		}
