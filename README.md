@@ -20,7 +20,8 @@ func main() {
     ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond * 2)
     defer cancel()
 
-    req, err := resilienthttp.NewRequestWithContext(ctx, "GET", "http://localhost:8001/goals-list", nil)
+    req, err := resilienthttp.NewRequestWithContext(ctx, "GET", "http://localhost", nil)
+
     if err != nil {
         panic(err)
     }

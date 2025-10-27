@@ -14,20 +14,20 @@ func TestDo(t *testing.T) {
 	defer ts.Close()
 
 	httpReq, _ := http.NewRequest("GET", ts.URL, nil)
-    resilientReq := &Request{Request: httpReq}    
+	resilientReq := &Request{Request: httpReq}
 
 	client := NewClient()
 
 	resp, err := client.Do(resilientReq)
-    if err != nil {
-        t.Errorf("unexpected error %v", err)
-    }
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
 
 	body, err := io.ReadAll(resp.Body)
-    resp.Body.Close()
-    if err != nil {
-        t.Errorf("unexpected error %v", err)
-    }
+	resp.Body.Close()
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
 
 	if string(body) != "response comes here" {
 		t.Error("no matching response")
