@@ -2,7 +2,7 @@ package resilienthttp
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -81,19 +81,20 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 			return nil, err
 		}
 
-        if response.StatusCode >= 200 && response.StatusCode < 300 {
-            return response, nil
-        }
+		if response.StatusCode < 500 {
+			return response, nil
+		}
 
 		if c.CheckRetry(response) {
 			c.Backoff(i)
 			slog.Error("request failed", "attempt", i)
 			if response != nil {
-                response.Body.Close()
-            }
-            continue
+				response.Body.Close()
+			}
+			continue
 		}
 	}
 
-	return nil, errors.New("cant connect to the service")
+    slog.Error("all retries failed", "retries", c.RetryMax, "last_status", response.StatusCode)
+	return response, fmt.Errorf("request failed after %d retries: last status=%d", c.RetryMax, response.StatusCode)
 }
