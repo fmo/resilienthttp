@@ -74,24 +74,26 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 	var response *http.Response
 	var err error
 
-	for i := 1; ; i++ {
+	for i := 1; i <= c.RetryMax; i++ {
 		response, err = c.HTTPClient.Do(req.Request)
 		if err != nil {
 			slog.Error("request failed", "err", err)
 			return nil, err
 		}
 
+        if response.StatusCode >= 200 && response.StatusCode < 300 {
+            return response, nil
+        }
+
 		if c.CheckRetry(response) {
-			if i >= c.RetryMax || !c.CheckRetry(response) {
-				return nil, errors.New("cant connect to the service")
-			} else {
-				c.Backoff(i)
-				slog.Error("request failed", "attempt", i)
-				continue
-			}
+			c.Backoff(i)
+			slog.Error("request failed", "attempt", i)
+			if response != nil {
+                response.Body.Close()
+            }
+            continue
 		}
-		break
 	}
 
-	return response, nil
+	return nil, errors.New("cant connect to the service")
 }
