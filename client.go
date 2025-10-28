@@ -19,6 +19,8 @@ var (
 
 type CheckRetry func(res *http.Response) bool
 
+type BackoffFunc func(attempt int)
+
 // Client extens http.Client with configurable retry logic for improved request resilience
 type Client struct {
 	HTTPClient *http.Client
@@ -26,8 +28,6 @@ type Client struct {
 	CheckRetry CheckRetry
 	Backoff    BackoffFunc
 }
-
-type BackoffFunc func(attempt int)
 
 func NewClient() *Client {
 	return &Client{
@@ -66,16 +66,6 @@ func NewRequestWithContext(ctx context.Context, method, url string, body io.Read
 	return &Request{Request: r}, err
 }
 
-func Get(url string) (*http.Response, error) {
-	c := NewClient()
-	r, err := NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.Do(r)
-}
-
 func (c *Client) Do(req *Request) (*http.Response, error) {
 	var response *http.Response
 	var err error
@@ -103,4 +93,14 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 
 	slog.Error("all retries failed", "retries", c.RetryMax, "last_status", response.StatusCode)
 	return response, fmt.Errorf("request failed after %d retries: last status=%d", c.RetryMax, response.StatusCode)
+}
+
+func Get(url string) (*http.Response, error) {
+	c := NewClient()
+	r, err := NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Do(r)
 }
