@@ -13,7 +13,10 @@ func TestDo(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	httpReq, _ := http.NewRequest("GET", ts.URL, nil)
+	httpReq, err := http.NewRequest("GET", ts.URL, nil)
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
 	resilientReq := &Request{Request: httpReq}
 
 	client := NewClient()
@@ -31,5 +34,25 @@ func TestDo(t *testing.T) {
 
 	if string(body) != "response comes here" {
 		t.Error("no matching response")
+	}
+}
+
+func TestGet(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("hello world"))
+	}))
+
+	resp, err := Get(ts.URL)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if string(body) != "hello world" {
+		t.Error("not expected response")
 	}
 }
