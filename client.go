@@ -73,9 +73,11 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 	for i := 0; i < c.RetryMax; i++ {
 		response, err = c.HTTPClient.Do(req.Request)
 		if err != nil {
-			slog.Error("request failed", "err", err)
+			slog.Error("request failed as no response was generated", "err", err)
 			return nil, err
 		}
+
+        slog.Info("got the response", "response code", response.StatusCode)
 
 		if response.StatusCode < 500 {
 			return response, nil
@@ -92,6 +94,7 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 	}
 
 	slog.Error("all retries failed", "retries", c.RetryMax, "last_status", response.StatusCode)
+
 	return response, fmt.Errorf("request failed after %d retries: last status=%d", c.RetryMax, response.StatusCode)
 }
 
