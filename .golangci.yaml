@@ -1,7 +1,0 @@
-linters:
-    disable-all: true
-    enable:
-        - gofmt
-        - govet
-        - goimports
-        - staticcheck
