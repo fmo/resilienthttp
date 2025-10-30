@@ -7,6 +7,24 @@ import (
 	"testing"
 )
 
+func TestDoWith404(t *testing.T) {
+    ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(404)
+    }))
+
+    c := NewClient()
+    req, _ := http.NewRequest("GET", ts.URL, nil)
+
+    resilientReq := &Request{Request: req}
+
+    resp, _ := c.Do(resilientReq)
+
+    if resp.StatusCode != 404 {
+        t.Errorf("unexpected status code")
+    }
+}
+
+
 func TestDo(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("response comes here"))
