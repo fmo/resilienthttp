@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// Default configuration values
 var (
 	defaultRetryMax = 4
 	defaultBackoff  = 1 * time.Second
@@ -34,12 +35,14 @@ func NewClient() *Client {
 		HTTPClient: &http.Client{},
 		// Limit the number of retries to give the service time to recover
 		RetryMax: defaultRetryMax,
-		Backoff: func(attempt int) {
+		// Each retry waits longer than the previous one
+        Backoff: func(attempt int) {
 			backoffTime := time.Duration(math.Min(float64(defaultBackoff)*math.Pow(2, float64(attempt)), float64(maxBackoff)))
 			jitter := time.Duration(rand.Float64() * float64(backoffTime) * 0.5)
 			slog.Info("exponential backoff", "time", backoffTime+jitter)
 			time.Sleep(backoffTime + jitter)
 		},
+        // We should not retry client errors (e.g., 4xx responses)
 		CheckRetry: func(res *http.Response) bool {
 			return res.StatusCode >= 500
 		},
@@ -66,6 +69,7 @@ func NewRequestWithContext(ctx context.Context, method, url string, body io.Read
 	return &Request{Request: r}, err
 }
 
+// Do wraps the standard http.Client.Do method with retry and backoff logic.
 func (c *Client) Do(req *Request) (*http.Response, error) {
 	var response *http.Response
 	var err error
@@ -98,6 +102,7 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 	return response, fmt.Errorf("request failed after %d retries: last status=%d", c.RetryMax, response.StatusCode)
 }
 
+// Simple Get request
 func Get(url string) (*http.Response, error) {
 	c := NewClient()
 	r, err := NewRequest("GET", url, nil)
