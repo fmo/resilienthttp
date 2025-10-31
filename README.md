@@ -1,3 +1,7 @@
+## Installation 🚀
+
+`go get github.com/fmo/resilienthttp`
+
 ## Usage
 
 ```
