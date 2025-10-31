@@ -97,9 +97,14 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 		}
 	}
 
-	slog.Error("all retries failed", "retries", c.RetryMax, "last_status", response.StatusCode)
+    status := -1
+    if response != nil {
+        status = response.StatusCode
+    }
 
-	return response, fmt.Errorf("request failed after %d retries: last status=%d", c.RetryMax, response.StatusCode)
+	slog.Error("all retries failed", "retries", c.RetryMax, "last_status", status)
+
+	return response, fmt.Errorf("request failed after %d retries: last status=%d", c.RetryMax, status)
 }
 
 // Simple Get request
